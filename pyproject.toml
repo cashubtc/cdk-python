@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cdk-python"
+version = "0.13.0"
+description = "Python bindings for the Cashu Development Kit (CDK)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["bitcoin", "e-cash", "cashu", "cdk", "wallet", "lightning"]
+authors = [
+    {name = "CDK Developers", email = "dev@cashu.space"}
+]
+maintainers = [
+    {name = "CDK Developers", email = "dev@cashu.space"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/cashubtc/cdk"
+Documentation = "https://docs.cashu.space"
+Repository = "https://github.com/cashubtc/cdk-python"
+"Bug Tracker" = "https://github.com/cashubtc/cdk-python/issues"
+
+[tool.setuptools]
+packages = ["cdk"]
+
+[tool.setuptools.package-dir]
+cdk = "src/cdk"
+
+[tool.setuptools.package-data]
+cdk = ["*.so", "*.dylib", "*.dll"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
