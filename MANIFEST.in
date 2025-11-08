@@ -1,0 +1,27 @@
+# Include important files in source distribution
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.py
+include pytest.ini
+include requirements-dev.txt
+include justfile
+include example.py
+
+# Include scripts
+recursive-include scripts *.sh
+
+# Include source code
+recursive-include src *.py
+
+# Include tests
+recursive-include tests *.py
+
+# Exclude build artifacts and binaries
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude *.so
+global-exclude *.dylib
+global-exclude *.dll
+global-exclude .DS_Store
