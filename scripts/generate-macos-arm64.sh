@@ -7,25 +7,29 @@ echo "Generating Python bindings for macOS ARM64 (Apple Silicon)..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Navigate to CDK repository
-CDK_PATH="$PROJECT_DIR/../cdk"
+# Navigate to CDK repository (check both ./cdk for CI and ../cdk for local dev)
+CDK_PATH="$PROJECT_DIR/cdk"
 if [ ! -d "$CDK_PATH" ]; then
-    echo "Error: CDK repository not found at $CDK_PATH"
-    exit 1
+    CDK_PATH="$PROJECT_DIR/../cdk"
+    if [ ! -d "$CDK_PATH" ]; then
+        echo "Error: CDK repository not found at $PROJECT_DIR/cdk or $PROJECT_DIR/../cdk"
+        exit 1
+    fi
 fi
 
 # Convert to absolute path
 CDK_PATH="$(cd "$CDK_PATH" && pwd)"
+echo "Using CDK at: $CDK_PATH"
 
 # Set Rust target
 TARGET="aarch64-apple-darwin"
 echo "Adding Rust target: $TARGET"
 rustup target add $TARGET
 
-# Build cdk-ffi with postgres support
+# Build cdk-ffi
 echo "Building cdk-ffi for $TARGET..."
 cd "$CDK_PATH/crates/cdk-ffi"
-cargo build --profile release-smaller --target $TARGET --features postgres
+cargo build --profile release-smaller --target $TARGET
 
 # Generate Python bindings
 echo "Generating Python bindings..."

@@ -3,22 +3,27 @@ set -euo pipefail
 
 echo "Generating Python bindings for Linux ARM64..."
 
-# Navigate to CDK repository
-CDK_PATH="../cdk"
+# Navigate to CDK repository (check both ./cdk for CI and ../cdk for local dev)
+CDK_PATH="./cdk"
 if [ ! -d "$CDK_PATH" ]; then
-    echo "Error: CDK repository not found at $CDK_PATH"
-    exit 1
+    CDK_PATH="../cdk"
+    if [ ! -d "$CDK_PATH" ]; then
+        echo "Error: CDK repository not found at ./cdk or ../cdk"
+        exit 1
+    fi
 fi
+
+echo "Using CDK at: $CDK_PATH"
 
 # Set Rust target
 TARGET="aarch64-unknown-linux-gnu"
 echo "Adding Rust target: $TARGET"
 rustup target add $TARGET
 
-# Build cdk-ffi with postgres support
+# Build cdk-ffi
 echo "Building cdk-ffi for $TARGET..."
 cd $CDK_PATH/crates/cdk-ffi
-cargo build --profile release-smaller --target $TARGET --features postgres
+cargo build --profile release-smaller --target $TARGET
 
 # Generate Python bindings
 echo "Generating Python bindings..."

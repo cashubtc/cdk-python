@@ -1,15 +1,19 @@
 """Setup script for cdk-python binary distribution."""
 
-from setuptools import setup
+from setuptools import setup, Distribution
 
 
-def has_ext_modules(self):
-    """Indicate that this package has binary extensions."""
-    return True
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name."""
+
+    def has_ext_modules(self):
+        """Indicate that this package has binary extensions.
+
+        This ensures platform-specific wheel tags are generated even though
+        the extensions are pre-built Rust libraries rather than being built
+        during the wheel creation process.
+        """
+        return True
 
 
-# Monkey patch to indicate we have binary extensions
-# This ensures platform-specific wheel tags are generated
-setup.__class__.has_ext_modules = has_ext_modules
-
-setup()
+setup(distclass=BinaryDistribution)

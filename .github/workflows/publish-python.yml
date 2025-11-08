@@ -7,11 +7,108 @@ on:
         description: 'Publish to PyPI (true/false)'
         required: false
         default: 'false'
+      cdk_version:
+        description: 'CDK version/tag to build (e.g., v0.4.0)'
+        required: true
+        type: string
+      use_test_pypi:
+        description: 'Use TestPyPI instead of PyPI (for testing)'
+        required: false
+        default: 'false'
+        type: string
+      skip_version_commit:
+        description: 'Skip committing version changes (for testing)'
+        required: false
+        default: 'false'
+        type: string
   repository_dispatch:
     types: [cdk-release]
 
+permissions:
+  contents: write      # For GitHub releases
+  id-token: write      # For trusted publishing to PyPI
+
 jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    outputs:
+      cdk_version: ${{ steps.extract_version.outputs.version }}
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - name: Checkout cdk-python repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout CDK repository
+        uses: actions/checkout@v4
+        with:
+          repository: cashubtc/cdk
+          path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
+
+      - name: Extract version from CDK
+        id: extract_version
+        run: |
+          # Extract version from CDK Cargo.toml (remove 'v' prefix if present)
+          CDK_TAG="${{ github.event.client_payload.version || github.event.inputs.cdk_version }}"
+          CDK_VERSION="${CDK_TAG#v}"
+
+          echo "CDK tag: $CDK_TAG"
+          echo "CDK version: $CDK_VERSION"
+          echo "version=$CDK_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update pyproject.toml version
+        run: |
+          VERSION="${{ steps.extract_version.outputs.version }}"
+
+          # Update version in pyproject.toml
+          sed -i "s/^version = .*/version = \"$VERSION\"/" pyproject.toml
+
+          # Update version in __init__.py
+          sed -i "s/^__version__ = .*/__version__ = \"$VERSION\"  # Updated automatically by CI during release/" src/cdk/__init__.py
+
+          # Verify the changes
+          echo "Updated pyproject.toml:"
+          grep "^version = " pyproject.toml
+          echo ""
+          echo "Updated __init__.py:"
+          grep "^__version__ = " src/cdk/__init__.py
+
+      - name: Commit version update
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          SKIP_COMMIT="${{ github.event.inputs.skip_version_commit || 'false' }}"
+
+          if git diff --quiet pyproject.toml src/cdk/__init__.py; then
+            echo "No version changes to commit"
+            COMMIT_SHA="${{ github.sha }}"
+          elif [ "$SKIP_COMMIT" = "true" ]; then
+            echo "⚠️  Skipping version commit (test mode)"
+            COMMIT_SHA="${{ github.sha }}"
+          else
+            git add pyproject.toml src/cdk/__init__.py
+            git commit -m "chore: bump version to ${{ steps.extract_version.outputs.version }}"
+            git push
+            COMMIT_SHA=$(git rev-parse HEAD)
+          fi
+
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "Commit SHA: $COMMIT_SHA"
+
+      - name: Upload version files
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-files
+          path: |
+            pyproject.toml
+            src/cdk/__init__.py
+
   build-linux-x86_64:
+    needs: update-version
     runs-on: ubuntu-latest
     container: quay.io/pypa/manylinux_2_28_x86_64
     strategy:
@@ -19,17 +116,36 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Checkout CDK repository
         uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
 
       - name: Set up Python ${{ matrix.python-version }}
         run: |
-          /opt/python/cp$(echo ${{ matrix.python-version }} | tr -d .)-*/bin/python -m pip install --upgrade pip
-          /opt/python/cp$(echo ${{ matrix.python-version }} | tr -d .)-*/bin/python -m pip install build wheel
+          PYVER=$(echo ${{ matrix.python-version }} | tr -d .)
+          PYTHON_BIN="/opt/python/cp${PYVER}-cp${PYVER}/bin/python"
+
+          # Fallback to glob pattern if exact path doesn't exist (for older Python versions)
+          if [ ! -f "$PYTHON_BIN" ]; then
+            PYTHON_BIN=$(ls /opt/python/cp${PYVER}-cp${PYVER}*/bin/python | grep -v "t/bin/python" | head -n1)
+          fi
+
+          echo "Using Python: $PYTHON_BIN"
+          $PYTHON_BIN --version
+          $PYTHON_BIN -m pip install --upgrade pip
+          $PYTHON_BIN -m pip install build wheel
 
       - name: Install Rust
         run: |
@@ -42,7 +158,37 @@ jobs:
           source $HOME/.cargo/env
           chmod +x scripts/generate-linux-x86_64.sh
           ./scripts/generate-linux-x86_64.sh
-          /opt/python/cp$(echo ${{ matrix.python-version }} | tr -d .)-*/bin/python -m build --wheel
+
+          # Use the same Python binary selection logic
+          PYVER=$(echo ${{ matrix.python-version }} | tr -d .)
+          PYTHON_BIN="/opt/python/cp${PYVER}-cp${PYVER}/bin/python"
+          if [ ! -f "$PYTHON_BIN" ]; then
+            PYTHON_BIN=$(ls /opt/python/cp${PYVER}-cp${PYVER}*/bin/python | grep -v "t/bin/python" | head -n1)
+          fi
+
+          echo "Building wheel with: $PYTHON_BIN"
+          $PYTHON_BIN -m build --wheel
+
+      - name: Repair wheel with auditwheel
+        run: |
+          # Install auditwheel
+          PYVER=$(echo ${{ matrix.python-version }} | tr -d .)
+          PYTHON_BIN="/opt/python/cp${PYVER}-cp${PYVER}/bin/python"
+          if [ ! -f "$PYTHON_BIN" ]; then
+            PYTHON_BIN=$(ls /opt/python/cp${PYVER}-cp${PYVER}*/bin/python | grep -v "t/bin/python" | head -n1)
+          fi
+
+          $PYTHON_BIN -m pip install auditwheel
+
+          # Repair the wheel to add manylinux tag
+          mkdir -p wheelhouse
+          for whl in dist/*.whl; do
+            auditwheel repair "$whl" --plat manylinux_2_28_x86_64 -w wheelhouse/
+          done
+
+          # Replace dist with repaired wheels
+          rm -rf dist
+          mv wheelhouse dist
 
       - name: Upload wheel
         uses: actions/upload-artifact@v4
@@ -51,18 +197,28 @@ jobs:
           path: dist/*.whl
 
   build-linux-aarch64:
+    needs: update-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Checkout CDK repository
         uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -96,18 +252,28 @@ jobs:
           path: dist/*.whl
 
   build-macos-arm64:
+    needs: update-version
     runs-on: macos-13
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Checkout CDK repository
         uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -138,18 +304,28 @@ jobs:
           path: dist/*.whl
 
   build-macos-x86_64:
+    needs: update-version
     runs-on: macos-13
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Checkout CDK repository
         uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -180,18 +356,28 @@ jobs:
           path: dist/*.whl
 
   build-windows-x86_64:
+    needs: update-version
     runs-on: windows-2022
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Checkout CDK repository
         uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
+          ref: ${{ github.event.client_payload.version || github.event.inputs.cdk_version }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -222,12 +408,19 @@ jobs:
           name: wheel-windows-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
 
-  publish:
-    needs: [build-linux-x86_64, build-linux-aarch64, build-macos-arm64, build-macos-x86_64, build-windows-x86_64]
+  build-sdist:
+    needs: update-version
     runs-on: ubuntu-latest
-    if: github.event.inputs.publish_to_pypi == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
+        uses: actions/download-artifact@v4
+        with:
+          name: version-files
+          path: .
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -237,34 +430,76 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install twine
+          pip install build
 
-      - name: Download all wheels
+      - name: Build source distribution
+        run: python -m build --sdist
+
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist/*.tar.gz
+
+  publish:
+    needs: [update-version, build-linux-x86_64, build-linux-aarch64, build-macos-arm64, build-macos-x86_64, build-windows-x86_64, build-sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'repository_dispatch' || github.event.inputs.publish_to_pypi == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.update-version.outputs.commit_sha }}
+
+      - name: Download version files
         uses: actions/download-artifact@v4
         with:
-          path: dist/
-          pattern: wheel-*
-          merge-multiple: true
+          name: version-files
+          path: .
 
-      - name: Display wheels
-        run: ls -R dist/
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-      - name: Check wheels
-        run: twine check dist/*.whl
+      - name: Extract version from pyproject.toml
+        id: get_version
+        run: |
+          # Use grep/sed for compatibility with Python 3.10
+          VERSION=$(grep "^version = " pyproject.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing version: $VERSION"
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-download/
+          pattern: "{wheel-*,sdist}"
+          merge-multiple: false
+
+      - name: Prepare distribution files
+        run: |
+          mkdir -p dist
+          cp dist-download/wheel-*/*.whl dist/ 2>/dev/null || true
+          cp dist-download/sdist/*.tar.gz dist/ 2>/dev/null || true
+
+      - name: Display distribution files
+        run: ls -lh dist/
 
       - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: twine upload dist/*.whl
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          print-hash: true
+          repository-url: ${{ github.event.inputs.use_test_pypi == 'true' && 'https://test.pypi.org/legacy/' || '' }}
+          skip-existing: true
 
       - name: Create GitHub Release
-        if: success()
+        if: success() && github.event.inputs.use_test_pypi != 'true'
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/*.whl
-          tag_name: v${{ github.event.client_payload.version || github.run_number }}
-          name: Release v${{ github.event.client_payload.version || github.run_number }}
+          files: dist/*
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
         env:

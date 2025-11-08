@@ -205,6 +205,27 @@ just build
 just test
 ```
 
+### Testing the Publishing Workflow
+
+Before publishing to PyPI, test the workflow with TestPyPI:
+
+1. **Set up TestPyPI** (one-time setup)
+   - Follow the guide in [TESTPYPI_SETUP.md](TESTPYPI_SETUP.md)
+   - Configure GitHub environment and trusted publishing
+
+2. **Run test workflow**
+   - Go to Actions → "Test Build and Publish (TestPyPI)" → Run workflow
+   - Enter a CDK version tag (e.g., `v0.4.0`)
+   - This will build and publish to https://test.pypi.org
+
+3. **Verify the test package**
+   ```bash
+   pip install --index-url https://test.pypi.org/simple/ cdk-python==0.4.0
+   python -c "import cdk; print('Success!')"
+   ```
+
+See [TESTING_WORKFLOW.md](TESTING_WORKFLOW.md) for complete testing documentation.
+
 ### Running Tests
 
 ```bash
