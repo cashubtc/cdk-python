@@ -12,7 +12,7 @@ Example:
     >>> balance = wallet.total_balance()
 """
 
-__version__ = "0.13.0"  # Updated automatically by CI during release
+__version__ = "0.14.0"  # Updated automatically by CI during release
 __author__ = "CDK Developers"
 __license__ = "MIT"
 
