@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout cdk-python repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
 
       - name: Validate required scripts exist
         run: |
@@ -83,12 +83,12 @@ jobs:
       commit_sha: ${{ steps.commit.outputs.commit_sha }}
     steps:
       - name: Checkout cdk-python repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -157,7 +157,7 @@ jobs:
           echo "Commit SHA: $COMMIT_SHA"
 
       - name: Upload version files
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: version-files
           path: |
@@ -173,18 +173,18 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -214,7 +214,7 @@ jobs:
           yum install -y openssl-devel pkg-config
 
       - name: Setup Rust cache
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -260,7 +260,7 @@ jobs:
           mv wheelhouse dist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-linux-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -275,22 +275,22 @@ jobs:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3.2.0
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -320,7 +320,7 @@ jobs:
           yum install -y openssl-devel pkg-config
 
       - name: Setup Rust cache
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -368,7 +368,7 @@ jobs:
           mv wheelhouse dist
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-linux-aarch64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -381,18 +381,18 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -409,7 +409,7 @@ jobs:
           git clone --depth 1 --branch ${{ github.event.client_payload.version || github.event.inputs.cdk_version }} https://github.com/cashubtc/cdk.git cdk
 
       - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -419,7 +419,7 @@ jobs:
           pip install build wheel
 
       - name: Setup Rust cache
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -432,9 +432,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.83.0
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add ARM64 target
         run: rustup target add aarch64-apple-darwin
@@ -446,7 +444,7 @@ jobs:
           python -m build --wheel
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-macos-arm64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -459,18 +457,18 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -487,7 +485,7 @@ jobs:
           git clone --depth 1 --branch ${{ github.event.client_payload.version || github.event.inputs.cdk_version }} https://github.com/cashubtc/cdk.git cdk
 
       - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -497,7 +495,7 @@ jobs:
           pip install build wheel
 
       - name: Setup Rust cache
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -510,9 +508,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.83.0
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add x86_64 target
         run: rustup target add x86_64-apple-darwin
@@ -524,7 +520,7 @@ jobs:
           python -m build --wheel
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-macos-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -537,18 +533,18 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Checkout CDK repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v4
         with:
           repository: cashubtc/cdk
           path: cdk
@@ -565,7 +561,7 @@ jobs:
           git clone --depth 1 --branch ${{ github.event.client_payload.version || github.event.inputs.cdk_version }} https://github.com/cashubtc/cdk.git cdk
 
       - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -575,7 +571,7 @@ jobs:
           pip install build wheel
 
       - name: Setup Rust cache
-        uses: actions/cache@v4.1.2
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index
@@ -588,9 +584,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@1.83.0
-        with:
-          toolchain: stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Add Windows target
         run: rustup target add x86_64-pc-windows-msvc
@@ -603,7 +597,7 @@ jobs:
           python -m build --wheel
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: wheel-windows-x86_64-py${{ matrix.python-version }}
           path: dist/*.whl
@@ -612,18 +606,18 @@ jobs:
     needs: update-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -636,7 +630,7 @@ jobs:
         run: python -m build --sdist
 
       - name: Upload sdist
-        uses: actions/upload-artifact@v4.4.3
+        uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -650,18 +644,18 @@ jobs:
       needs.update-version.result == 'success' &&
       (github.event_name == 'repository_dispatch' || github.event.inputs.publish_target != 'none')
     steps:
-      - uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4
         with:
           ref: ${{ needs.update-version.outputs.commit_sha }}
 
       - name: Download version files
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           name: version-files
           path: .
 
       - name: Set up Python
-        uses: actions/setup-python@v5.3.0
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -674,7 +668,7 @@ jobs:
           echo "Publishing version: $VERSION"
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4.1.8
+        uses: actions/download-artifact@v4
         with:
           path: dist-download/
           pattern: "{wheel-*,sdist}"
@@ -708,7 +702,7 @@ jobs:
           fi
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.12.2
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
           print-hash: true
@@ -717,7 +711,7 @@ jobs:
 
       - name: Create GitHub Release
         if: success() && steps.pypi_url.outputs.is_test == 'false'
-        uses: softprops/action-gh-release@v2.0.9
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
           tag_name: v${{ steps.get_version.outputs.version }}
