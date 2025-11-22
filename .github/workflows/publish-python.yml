@@ -221,10 +221,10 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./cdk/target
-          key: ${{ runner.os }}-cargo-linux-x86_64-${{ hashFiles('cdk/**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-linux-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-linux-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-
             ${{ runner.os }}-cargo-linux-x86_64-
-            ${{ runner.os }}-cargo-
 
       - name: Install Rust
         run: |
@@ -327,10 +327,10 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./cdk/target
-          key: ${{ runner.os }}-cargo-linux-aarch64-${{ hashFiles('cdk/**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-linux-aarch64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-linux-aarch64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-
             ${{ runner.os }}-cargo-linux-aarch64-
-            ${{ runner.os }}-cargo-
 
       - name: Install Rust
         run: |
@@ -426,10 +426,10 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./cdk/target
-          key: ${{ runner.os }}-cargo-macos-arm64-${{ hashFiles('cdk/**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-macos-arm64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-macos-arm64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-
             ${{ runner.os }}-cargo-macos-arm64-
-            ${{ runner.os }}-cargo-
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -502,10 +502,10 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./cdk/target
-          key: ${{ runner.os }}-cargo-macos-x86_64-${{ hashFiles('cdk/**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-macos-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-macos-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-
             ${{ runner.os }}-cargo-macos-x86_64-
-            ${{ runner.os }}-cargo-
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -578,10 +578,10 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git
             ./cdk/target
-          key: ${{ runner.os }}-cargo-windows-x86_64-${{ hashFiles('cdk/**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-windows-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-${{ hashFiles('**/Cargo.toml', '**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-cargo-windows-x86_64-${{ github.event.client_payload.version || github.event.inputs.cdk_version }}-
             ${{ runner.os }}-cargo-windows-x86_64-
-            ${{ runner.os }}-cargo-
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
