@@ -40,7 +40,8 @@ if [ ! -f "$LIB_PATH" ]; then
 fi
 
 OUT_DIR="$PROJECT_DIR/src/cdk"
-cargo run --bin uniffi-bindgen generate \
+# Run uniffi-bindgen on the host architecture (x86_64), not the target (aarch64)
+cargo run --target x86_64-apple-darwin --bin uniffi-bindgen generate \
     --library "$LIB_PATH" \
     --language python \
     --out-dir "$OUT_DIR"

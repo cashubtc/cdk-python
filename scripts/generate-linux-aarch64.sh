@@ -33,7 +33,8 @@ if [ ! -f "$LIB_PATH" ]; then
     exit 1
 fi
 
-cargo run --bin uniffi-bindgen generate \
+# Run uniffi-bindgen on the host architecture (x86_64), not the target (aarch64)
+cargo run --target x86_64-unknown-linux-gnu --bin uniffi-bindgen generate \
     --library $LIB_PATH \
     --language python \
     --out-dir ../../cdk-python/src/cdk/

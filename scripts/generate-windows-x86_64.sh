@@ -33,7 +33,19 @@ if [ ! -f "$LIB_PATH" ]; then
     exit 1
 fi
 
-cargo run --bin uniffi-bindgen generate \
+# Detect current architecture and use appropriate uniffi-bindgen target
+CURRENT_ARCH=$(uname -m)
+if [ "$CURRENT_ARCH" = "x86_64" ] || [ "$CURRENT_ARCH" = "AMD64" ]; then
+    UNIFFI_TARGET="x86_64-pc-windows-msvc"
+elif [ "$CURRENT_ARCH" = "aarch64" ] || [ "$CURRENT_ARCH" = "ARM64" ]; then
+    UNIFFI_TARGET="aarch64-pc-windows-msvc"
+else
+    # Fallback to x86_64 for unknown architectures
+    UNIFFI_TARGET="x86_64-pc-windows-msvc"
+fi
+
+echo "Running uniffi-bindgen with target: $UNIFFI_TARGET"
+cargo run --target $UNIFFI_TARGET --bin uniffi-bindgen generate \
     --library $LIB_PATH \
     --language python \
     --out-dir ../../cdk-python/src/cdk/
