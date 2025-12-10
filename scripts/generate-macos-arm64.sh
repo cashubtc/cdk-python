@@ -40,8 +40,15 @@ if [ ! -f "$LIB_PATH" ]; then
 fi
 
 OUT_DIR="$PROJECT_DIR/src/cdk"
-# Run uniffi-bindgen on the host architecture (x86_64), not the target (aarch64)
-cargo run --target x86_64-apple-darwin --bin uniffi-bindgen generate \
+# Run uniffi-bindgen on the host architecture
+CURRENT_ARCH=$(uname -m)
+if [ "$CURRENT_ARCH" = "arm64" ]; then
+    UNIFFI_TARGET="aarch64-apple-darwin"
+else
+    UNIFFI_TARGET="x86_64-apple-darwin"
+fi
+echo "Running uniffi-bindgen with target: $UNIFFI_TARGET"
+cargo run --target $UNIFFI_TARGET --bin uniffi-bindgen generate \
     --library "$LIB_PATH" \
     --language python \
     --out-dir "$OUT_DIR"

@@ -371,7 +371,7 @@ jobs:
 
   build-macos-arm64:
     needs: update-version
-    runs-on: macos-14
+    runs-on: macos-15  # ARM64 runner
     if: contains(github.event.inputs.build_platforms, 'all') || contains(github.event.inputs.build_platforms, 'macos-arm64')
     strategy:
       matrix:
@@ -447,7 +447,7 @@ jobs:
 
   build-macos-x86_64:
     needs: update-version
-    runs-on: macos-13
+    runs-on: macos-15-large  # Intel x86_64 runner
     if: contains(github.event.inputs.build_platforms, 'all') || contains(github.event.inputs.build_platforms, 'macos-x86_64')
     strategy:
       matrix:
