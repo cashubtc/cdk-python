@@ -267,17 +267,13 @@ jobs:
 
   build-linux-aarch64:
     needs: update-version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm64  # Native ARM64 runner
     container: quay.io/pypa/manylinux_2_28_aarch64
     if: contains(github.event.inputs.build_platforms, 'all') || contains(github.event.inputs.build_platforms, 'linux-aarch64')
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - uses: actions/checkout@v4
         with:
