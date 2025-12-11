@@ -25,14 +25,25 @@ try:
     from .cdk import WalletSqliteDatabase, WalletPostgresDatabase
 except ImportError as e:
     import sys
+
     print(
         "Error: CDK Python bindings not found. "
         "Please run 'just generate' to build the bindings.",
-        file=sys.stderr
+        file=sys.stderr,
     )
     raise ImportError(
         "CDK bindings not generated. Run 'just generate' to build them."
     ) from e
+
+try:
+    from .patches import (  # noqa: F401
+        Amount,
+        _UniffiConverterTypeAmount,
+        CurrencyUnit,
+        _UniffiConverterTypeCurrencyUnit,
+    )
+except (ImportError, AttributeError):
+    pass
 
 
 class Database:
