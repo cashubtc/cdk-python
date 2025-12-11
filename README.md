@@ -34,31 +34,42 @@ pip install cdk-python
 ## Quick Start
 
 ```python
-from cdk import Wallet, WalletConfig, Database
+from cdk import Wallet, WalletConfig, Database, CurrencyUnit
+import asyncio
 
-# Create an in-memory database for testing
-database = Database.memory()
+async def main():
+    # Create an in-memory database for testing
+    database = Database.memory()
 
-# Configure wallet
-config = WalletConfig(
-    mint_url="https://mint.example.com",
-    unit="sat"
-)
+    config = WalletConfig(
+        target_proof_count= None
+    )
 
-# Create wallet
-wallet = Wallet(config, database)
+    # Create wallet
+    wallet = Wallet(
+        "https://mint.example.com",
+        CurrencyUnit.SAT(),
+        "slot destroy disagree air autumn cigar fade hat black cherry repair scrub",
+        database,
+        config,
+    )
 
-# Get mint information
-mint_info = wallet.get_mint_info()
-print(f"Mint: {mint_info.name}")
 
-# Request a mint quote
-quote = wallet.mint_quote(amount=100, description="Test deposit")
-print(f"Pay this invoice: {quote.request}")
+    # Get mint information
+    mint_info = await wallet.get_mint_info()
+    print(f"Mint: {mint_info.name}")
 
-# Check balance
-balance = wallet.total_balance()
-print(f"Balance: {balance} sats")
+    # Request a mint quote
+    quote = await wallet.mint_quote(amount=100, description="Test deposit")
+    print(f"Pay this invoice: {quote.request}")
+
+    # Check balance
+    balance = await wallet.total_balance()
+    print(f"Balance: {balance} sats")
+
+
+loop = asyncio.new_event_loop()
+loop.run_until_complete(main())
 ```
 
 ## Examples
@@ -66,20 +77,24 @@ print(f"Balance: {balance} sats")
 ### Creating a Wallet with SQLite
 
 ```python
-from cdk import Wallet, WalletConfig, Database
+from cdk import Wallet, WalletConfig, Database, CurrencyUnit
 
 # Create SQLite database
-database = Database.sqlite("/path/to/wallet.db")
+database = await Database.sqlite("/path/to/wallet.db")
 
 # Create wallet configuration
 config = WalletConfig(
-    mint_url="https://mint.example.com",
-    unit="sat",
     target_proof_count=3  # Optional: target number of proofs
 )
 
 # Initialize wallet
-wallet = Wallet(config, database)
+wallet = Wallet(
+	"https://mint.example.com",
+	CurrencyUnit.SAT(),
+	"slot destroy disagree air autumn cigar fade hat black cherry repair scrub",
+	database,
+	config,
+)
 ```
 
 ### Sending and Receiving Tokens
@@ -87,19 +102,20 @@ wallet = Wallet(config, database)
 ```python
 from cdk import SendOptions, ReceiveOptions
 
+
 # Send tokens
 send_opts = SendOptions(
     memo="Payment for coffee",
     include_fees=True
 )
-token = wallet.send(amount=50, send_options=send_opts)
+token = await wallet.send(amount=50, send_options=send_opts)
 print(f"Token: {token}")
 
 # Receive tokens
 receive_opts = ReceiveOptions(
     signature_flag="all"  # Verify all proofs
 )
-amount_received = wallet.receive(token, receive_opts)
+amount_received = await wallet.receive(token, receive_opts)
 print(f"Received: {amount_received} sats")
 ```
 
@@ -107,13 +123,13 @@ print(f"Received: {amount_received} sats")
 
 ```python
 # Create melt quote for Lightning payment
-melt_quote = wallet.melt_quote(
+melt_quote = await wallet.melt_quote(
     invoice="lnbc...",  # Lightning invoice
     description="Outgoing payment"
 )
 
 # Execute the melt
-result = wallet.melt(melt_quote.quote_id)
+result = await wallet.melt(melt_quote.quote_id)
 print(f"Payment preimage: {result.preimage}")
 ```
 
@@ -137,7 +153,7 @@ seed = existing.to_seed(passphrase="")  # Optional passphrase
 from cdk import TransactionDirection
 
 # List all transactions
-transactions = wallet.list_transactions()
+transactions = await wallet.list_transactions()
 for tx in transactions:
     print(f"Amount: {tx.amount}, Date: {tx.created_at}")
 
@@ -155,11 +171,11 @@ tx = wallet.get_transaction(transaction_id)
 from cdk import ProofState
 
 # Get proofs by state
-pending = wallet.get_proofs_by_state([ProofState.PENDING])
-spent = wallet.get_proofs_by_state([ProofState.SPENT])
+pending = await wallet.get_proofs_by_state([ProofState.PENDING])
+spent = await wallet.get_proofs_by_state([ProofState.SPENT])
 
 # Check reserved balance
-reserved = wallet.reserved_balance()
+reserved = await wallet.reserved_balance()
 print(f"Reserved: {reserved} sats")
 ```
 
@@ -175,7 +191,13 @@ database = Database.postgres(
     connection_string="postgresql://user:pass@localhost/cdk_wallet"
 )
 
-wallet = Wallet(config, database)
+wallet = Wallet(
+	"https://mint.example.com",
+	CurrencyUnit.SAT(),
+	"slot destroy disagree air autumn cigar fade hat black cherry repair scrub",
+	database,
+	config,
+)
 ```
 
 ## Development
